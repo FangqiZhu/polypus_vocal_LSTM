@@ -1,11 +1,18 @@
 """
 main.py
-Description: Detection of the polypus by leveraging LSTM with preprocessing features
+Description:
+Input:
+Output:
+Author: Fangqi Zhu
+Affiliation: University of Texas at Arlington
+Last Modified: 05/15/2018
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 from load_util import load_spec_data
+from load_util import MFCC_vocal
 from sklearn.model_selection import train_test_split
 
 from keras.models import Sequential
@@ -17,7 +24,15 @@ from keras.optimizers import RMSprop
 """
 Extract short time fourier transform (STFT) coefficients
 
+Remark: 
+1. Scipy and MATLAB use different FFT libraries. Scipy uses lapack, while MATLAB uses FFTW. 
+These libraries use different algorithms and produce slightly different results.
+2. The dimension of the S matrix so absolute different, please keep consensus for usage.
+3. The loading part will load the Spectrogram matrix extracted from MATLAB function spectrogram.m
+
 """
+
+
 param_STFT = load_spec_data()
 
 S_normal_a2 = param_STFT["S_normal_a2"]
@@ -25,11 +40,40 @@ S_abnormal_a2 = param_STFT["S_abnormal_a2"]
 S_normal_i1 = param_STFT["S_normal_i1"]
 S_abnormal_i1 = param_STFT["S_abnormal_i1"]
 
+
+
+"""
+MFCC features
+"""
+
+param_MFCC = MFCC_vocal()
+
+mfcc_normal_a2 = param_MFCC["mfcc_normal_a2"]
+mfcc_abnormal_a2 = param_MFCC["mfcc_abnormal_a2"]
+mfcc_normal_i1 = param_MFCC["mfcc_normal_i1"]
+mfcc_abnormal_i1 = param_MFCC["mfcc_abnormal_i1"]
+fbank_normal_a2 = param_MFCC["fbank_normal_a2"]
+fbank_abnormal_a2 = param_MFCC["fbank_abnormal_a2"]
+fbank_normal_i1 = param_MFCC["fbank_normal_i1"]
+fbank_abnormal_i1 = param_MFCC["fbank_abnormal_i1"]
+
+print(mfcc_normal_a2.shape, '\n',
+      mfcc_abnormal_a2.shape, '\n',
+      mfcc_normal_i1.shape, '\n',
+      mfcc_abnormal_i1.shape, '\n',
+      fbank_normal_a2.shape, '\n',
+      fbank_abnormal_a2.shape, '\n',
+      fbank_normal_i1.shape, '\n',
+      fbank_abnormal_i1.shape
+      )
+
 # training data
-X = np.concatenate((S_normal_a2.T, S_abnormal_a2.T))
-X = X[:,:1024]
+X = np.concatenate((mfcc_normal_a2, mfcc_abnormal_a2))
+X = X[:,:24]
 # annotating labels
-y = np.concatenate((np.ones((X.shape[0]//2, 1)), -np.ones((X.shape[0]//2, 1))))
+y = np.concatenate((np.ones((mfcc_normal_a2.shape[0], 1)), -np.ones((mfcc_abnormal_a2.shape[0], 1))))
+
+
 """
 pass the arrays as an iterable (a tuple or list), thus the correct syntax is np.concatenate((...)) for 1-D array
 
@@ -44,7 +88,7 @@ print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
 
 # Model Building and Parameters Setup
-length = 1024
+length = 13
 model = Sequential()
 model.add(LSTM(32, input_shape=(length, 1), return_sequences=False))
 model.add(Dropout(0.4))
@@ -59,12 +103,12 @@ model.compile(optimizer = optimizer,
               metrics=['acc'])
 
 history = model.fit(X_train, y_train,
-                    epochs=10,
+                    epochs=30,
                     batch_size=32,
                     validation_split=0.25)
 
 results = model.evaluate(X_test, y_test)
-print('test loss: ', results[0], '\n'
+print('test loss: ', results[0], '\n',
       'test accuracy: ', results[1])
 
 # plot results
@@ -88,31 +132,30 @@ plt.legend()
 plt.show()
 
 
-"""
-MFCC features
-"""
-from load_util import MFCC_vocal
 
-# param_MFCC = MFCC_vocal(S_normal_a2, S_abnormal_a2, S_normal_i1, S_abnormal_i1)
-#
-# mfcc_normal_a2 = param_MFCC["mfcc_normal_a2"]
-# mfcc_abnormal_a2 = param_MFCC["mfcc_abnormal_a2"]
-# mfcc_normal_i1 = param_MFCC["mfcc_normal_i1"]
-# mfcc_abnormal_i1 = param_MFCC["mfcc_abnormal_i1"]
-# fbank_normal_a2 = param_MFCC["fbank_normal_a2"]
-# fbank_abnormal_a2 = param_MFCC["fbank_abnormal_a2"]
-# fbank_normal_i1 = param_MFCC["fbank_normal_i1"]
-# fbank_abnormal_i1 = param_MFCC["fbank_abnormal_i1"]
-#
-# print(mfcc_normal_a2.shape, '\n',
-#       mfcc_abnormal_a2.shape, '\n',
-#       mfcc_normal_i1.shape, '\n',
-#       mfcc_abnormal_i1.shape, '\n',
-#       fbank_normal_a2.shape, '\n',
-#       fbank_abnormal_a2.shape, '\n',
-#       fbank_normal_i1.shape, '\n',
-#       fbank_abnormal_i1.shape
-#       )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
